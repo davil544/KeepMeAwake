@@ -26,23 +26,17 @@ void timer(long long int seconds) {
 	std::cout << std::endl;
 }
 
+void exit() {
+	// This returns the OS to its previous state to allow it to go to sleep if configured to
+	SetThreadExecutionState(ES_CONTINUOUS);
+	std::cout << "Exiting program!" << std::endl;
+}
+
 int main(int argc, char* argv[]) {
 	std::cout << "KeepMeAwake Version 1.0.1-prerelease, Created by Dylan Aviles\n" << std::endl;
-
-	// This prevents the OS from going to sleep
-	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED);
-
-	// This checks if any arguments have passed to the program
-	if (argc == 1) {
-		std::cout << "Your system will now stay awake until you press the Enter key..." << std::endl;
-
-		// This keeps the program running until the user presses the Enter key
-		char inputkey = 0;
-		do {
-			inputkey = _getch();
-		} while (inputkey != '\r' && inputkey != '\n');
-	}
-	else {
+	bool displayCanSleep = false, timed = false; long long seconds = NULL;
+	
+	if (argc != 1) {
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '-') {
 				char option = argv[i][1];
@@ -52,33 +46,66 @@ int main(int argc, char* argv[]) {
 					std::cout << "Command Usage:   KeepMeAwake.exe [-option] [value]\n" << std::endl;
 
 					std::cout << " No Options Used:  Keeps the program running until the Enter key is pressed." << std::endl;
+					std::cout << "              -s:  Allows the screen to sleep (if configured in Windows) while keeping the computer awake" << std::endl;
 					std::cout << "    -t <seconds>:  Keeps the program running for the specified number of seconds" << std::endl;
 
+					exit();
+					return 0;
+
+				case 's':
+				case 'S':
+					std::cout << "Option -s selected, now allowing the screen to sleep" << std::endl;
+					displayCanSleep = true;
 					break;
+
 				case 't':
 				case 'T':
-					std::cout << "Option -t selected, ";
 					if (i + 1 < argc) {
-						timer(std::atoll(argv[i + 1]));
+						seconds = std::atoll(argv[i + 1]);
+						timed = true;
 					}
 					else {
 						std::cout << "No argument provided for option -t: seconds\n Usage: KeepMeAwake.exe -t 60" << std::endl;
+						exit();
+						return 1;
 					}
 					i++;
 					break;
 				default:
 					std::cout << "Unknown option: " << option << ", ";
+					exit();
+					return 1;
 				}
 			}
 			else {
 				std::cout << "Invalid argument: " << argv[i] << ", ";
+				exit();
+				return 1;
 			}
 		}
 	}
 
-	// This returns the OS to its previous state to allow it to go to sleep
-	SetThreadExecutionState(ES_CONTINUOUS);
-	std::cout << "Exiting program!" << std::endl;
+	if (displayCanSleep) {
+		SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED);
+	}
+	else {
+		SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED | ES_AWAYMODE_REQUIRED);
+	}
+
+	if (timed) {
+		std::cout << "Option -t selected, ";
+		timer(seconds);
+	}
+	else {
+		std::cout << "Your system will now stay awake until you press the Enter key..." << std::endl;
+
+		char inputkey = 0;
+		do {
+			inputkey = _getch();
+		} while (inputkey != '\r' && inputkey != '\n');
+	}
+
+	exit();
 	return 0;
 }
 
