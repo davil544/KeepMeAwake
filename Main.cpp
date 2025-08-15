@@ -33,9 +33,10 @@ void exit() {
 }
 
 int main(int argc, char* argv[]) {
-	std::cout << "KeepMeAwake Version 1.0.1-prerelease, Created by Dylan Aviles\n" << std::endl;
+	std::cout << "KeepMeAwake Version 1.0.1, Created by Dylan Aviles\n" << std::endl;
 	bool displayCanSleep = false, timed = false; long long seconds = NULL;
 	
+	// This checks if any arguments have passed to the program
 	if (argc != 1) {
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '-') {
