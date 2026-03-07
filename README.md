@@ -4,7 +4,7 @@
 
 Command Usage:   KeepMeAwake.exe [-option] [value]
 
-Flags:
+Parameters:
 - 
 - `-h` Runs the help function to show parameters that can be used with this program
 - `-s` Allows the screen to sleep (if configured in Windows) while keeping the computer awake
