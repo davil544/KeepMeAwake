@@ -4,13 +4,14 @@
 #include <chrono>
 #include <thread>
 
+HANDLE hMutex = NULL;
+
 void timer(long long int seconds) {
 	if (seconds <= 0) {
 		std::cout << "Invalid number of seconds: " << seconds << std::endl;
 		return;
 	}
 
-	// This prints one dot per second to the console until the specified time has elapsed
 	std::cout << "staying awake for " << seconds << " seconds";
 	auto start = std::chrono::steady_clock::now();
 	while (true) {
@@ -26,17 +27,51 @@ void timer(long long int seconds) {
 	std::cout << std::endl;
 }
 
-void exit() {
-	// This returns the OS to its previous state to allow it to go to sleep if configured to
+void cleanup() {
 	SetThreadExecutionState(ES_CONTINUOUS);
+	if (hMutex) {
+		CloseHandle(hMutex);
+		hMutex = NULL;
+	}
 	std::cout << "Exiting program!" << std::endl;
 }
 
+BOOL WINAPI ConsoleHandler(DWORD signal) {
+	if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT || signal == CTRL_BREAK_EVENT || signal == CTRL_LOGOFF_EVENT || signal == CTRL_SHUTDOWN_EVENT) {
+		cleanup();
+		return 1;
+	}
+	return 1;
+}
+
+void pause() {
+	char inputkey = 0;
+	do {
+		inputkey = _getch();
+	} while (inputkey != '\r' && inputkey != '\n');
+}
+
 int main(int argc, char* argv[]) {
-	std::cout << "KeepMeAwake Version 1.0.1, Created by Dylan Aviles\n" << std::endl;
+	hMutex = CreateMutexA(NULL, FALSE, "KeepMeAwake_SingleInstance_Mutex");
+
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		std::cout << "Another instance of KeepMeAwake is already running. Please close any other instances and try again.\nPress Enter key to exit..." << std::endl;
+		if (hMutex) {
+			CloseHandle(hMutex);
+		}
+		pause();
+		return 1;
+	}
+	
+	if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
+		std::cout << "Error: Could not set console control handler." << std::endl;
+		return 1;
+	}
+
+	std::atexit(cleanup);
+	std::cout << "KeepMeAwake Version 1.1.0, Created by Dylan Aviles\n" << std::endl;
 	bool displayCanSleep = false, timed = false; long long seconds = NULL;
 	
-	// This checks if any arguments have passed to the program
 	if (argc != 1) {
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '-') {
@@ -48,9 +83,8 @@ int main(int argc, char* argv[]) {
 
 					std::cout << " No Options Used:  Keeps the program running until the Enter key is pressed." << std::endl;
 					std::cout << "              -s:  Allows the screen to sleep (if configured in Windows) while keeping the computer awake" << std::endl;
-					std::cout << "    -t <seconds>:  Keeps the program running for the specified number of seconds" << std::endl;
+					std::cout << "    -t <seconds>:  Keeps the program running for the specified number of seconds\n" << std::endl;
 
-					exit();
 					return 0;
 
 				case 's':
@@ -66,21 +100,18 @@ int main(int argc, char* argv[]) {
 						timed = true;
 					}
 					else {
-						std::cout << "No argument provided for option -t: seconds\n Usage: KeepMeAwake.exe -t 60" << std::endl;
-						exit();
+						std::cout << "No argument provided for option -t: seconds\n Usage: KeepMeAwake.exe -t 60\n" << std::endl;
 						return 1;
 					}
 					i++;
 					break;
 				default:
 					std::cout << "Unknown option: " << option << ", ";
-					exit();
 					return 1;
 				}
 			}
 			else {
 				std::cout << "Invalid argument: " << argv[i] << ", ";
-				exit();
 				return 1;
 			}
 		}
@@ -99,17 +130,12 @@ int main(int argc, char* argv[]) {
 	}
 	else {
 		std::cout << "Your system will now stay awake until you press the Enter key..." << std::endl;
-
-		char inputkey = 0;
-		do {
-			inputkey = _getch();
-		} while (inputkey != '\r' && inputkey != '\n');
+		pause();
 	}
 
-	exit();
 	return 0;
 }
 
 
-// Copyright (c) 2025 Dylan Aviles
+// Copyright (c) 2025-2026 Dylan Aviles
 // Licensed under MIT (https://github.com/davil544/KeepMeAwake/blob/master/LICENSE.md)
